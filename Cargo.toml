@@ -1,0 +1,18 @@
+[package]
+name = "pcap_xyz_extractor"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# PCAP parsing
+pcap-parser = "0.15"
+
+# Excel export
+rust_xlsxwriter = "0.80"
+
+# Progress bar
+indicatif = "0.17"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"

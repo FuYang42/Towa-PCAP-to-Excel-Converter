@@ -1,0 +1,64 @@
+# Large data files
+*.pcap
+*.pcapng
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+
+# Added by cargo
+
+/target
+
+# Generated output files
+*_xyz.xlsx
+test_output.xlsx
+
+# Test/debug files
+test_*.rs
+test_*.exe
+debug_*.exe
+*_debug.rs
+analyze_*.py
+*.pyc
+
+# Temporary documentation
+FIXED.md
+USAGE.md
