@@ -38,11 +38,15 @@ pub fn export_to_excel(channel_points: &HashMap<u8, Vec<Point>>, output_path: &s
         worksheet.write_with_format(0, 0, "X (m)", &header_format)?;
         worksheet.write_with_format(0, 1, "Y (m)", &header_format)?;
         worksheet.write_with_format(0, 2, "Z (m)", &header_format)?;
+        worksheet.write_with_format(0, 3, "Reflectivity", &header_format)?;
+        worksheet.write_with_format(0, 4, "Flags", &header_format)?;
 
         // Set column widths
         worksheet.set_column_width(0, 12)?;
         worksheet.set_column_width(1, 12)?;
         worksheet.set_column_width(2, 12)?;
+        worksheet.set_column_width(3, 14)?;
+        worksheet.set_column_width(4, 10)?;
 
         // Write data
         for (i, point) in points.iter().enumerate() {
@@ -50,6 +54,8 @@ pub fn export_to_excel(channel_points: &HashMap<u8, Vec<Point>>, output_path: &s
             worksheet.write_with_format(row, 0, point.x, &number_format)?;
             worksheet.write_with_format(row, 1, point.y, &number_format)?;
             worksheet.write_with_format(row, 2, point.z, &number_format)?;
+            worksheet.write_number(row, 3, point.reflectivity as f64)?;
+            worksheet.write_number(row, 4, point.flags as f64)?;
         }
 
         // Freeze first row (headers)
@@ -80,11 +86,15 @@ mod tests {
                     x: 12.8,
                     y: 0.72,
                     z: -88.94,
+                    reflectivity: 128,
+                    flags: 0,
                 },
                 Point {
                     x: 82.32,
                     y: -3.98,
                     z: 4.05,
+                    reflectivity: 255,
+                    flags: 1,
                 },
             ],
         );
@@ -95,6 +105,8 @@ mod tests {
                 x: -1.05,
                 y: 5.22,
                 z: 0.32,
+                reflectivity: 64,
+                flags: 0,
             }],
         );
 

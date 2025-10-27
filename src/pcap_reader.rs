@@ -158,8 +158,6 @@ pub fn extract_points(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_scan_channels() {
         // This test would require a sample PCAP file
