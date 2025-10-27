@@ -28,7 +28,7 @@ cargo run --release
 
 #### 步骤 1：输入 PCAP 文件路径
 ```
-Enter PCAP file path: ch_28 (1).pcap
+Enter PCAP file path:
 ```
 
 #### 步骤 2：查看通道统计
