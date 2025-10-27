@@ -10,6 +10,7 @@ pub struct Point {
 
 /// STDV packet header (24 bytes)
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct StdvHeader {
     pub signature: [u8; 4],      // "STDV"
     pub header_version: u8,
@@ -63,6 +64,7 @@ impl StdvHeader {
 
 /// Raw point data structure (10 bytes minimum)
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct RawPoint {
     pub x: i16,           // 0.5cm resolution
     pub y: u16,           // 0.5cm resolution
