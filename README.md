@@ -15,7 +15,6 @@ cargo build --release
 ### 2. 运行程序
 
 ```bash
-cd "C:\Users\FuYou\Desktop\Tool for Data"
 cargo run --release
 ```
 
