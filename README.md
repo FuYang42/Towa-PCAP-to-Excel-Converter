@@ -1,6 +1,6 @@
 # PCAP to Excel Converter
 
-一个用 Rust 编写的高性能工具，用于从 PCAP 文件中提取 XYZ 坐标数据并导出到 Excel 文件。
+一个用 Rust 编写的高性能工具，用于从 PCAP 文件中提取点云数据并导出到 Excel 文件。
 
 ## 使用方法
 
@@ -44,14 +44,10 @@ Found 8 channels:
 ```
 
 #### 步骤 3：选择通道
-使用空格键选择，Enter 确认：
-```
-[Step 2/4] Select channels to extract:
-[ ] Channel 0 (12000 points)
-[ ] Channel 5 (11500 points)
-[x] Channel 10 (12200 points)
-...
-```
+输入通道选择：
+- 输入 `all` 选择所有通道
+- 输入通道号（用逗号分隔）：`0,5,10`
+- 输入范围：`0-10`
 
 #### 步骤 4：等待处理
 程序会显示进度条：
@@ -78,16 +74,33 @@ Summary:
 - 每个通道一个工作表（Sheet）
 - 工作表命名：`Channel_0`, `Channel_5`, `Channel_10`, ...
 
+### 数据列
+每个工作表包含以下列：
+
+| 列名 | 说明 | 格式 |
+|------|------|------|
+| X (m) | X 坐标（米） | 保留4位小数 |
+| Y (m) | Y 坐标（米） | 保留4位小数 |
+| Z (m) | Z 坐标（米） | 保留4位小数 |
+| Reflectivity | 反射率 | 整数 (0-255) |
+| Flags | 状态标志 | 整数 (0-255) |
+
 ## 项目结构
 
 ```
-Tool for Data/
+Towa-PCAP-to-Excel-Converter/
 ├── src/
 │   ├── main.rs           # 主程序入口
-│   ├── cepton.rs         # Cepton 数据结构定义
+│   ├── cepton.rs         # Cepton STDV 数据结构定义
 │   ├── pcap_reader.rs    # PCAP 文件解析
 │   └── excel_exporter.rs # Excel 导出功能
 ├── Cargo.toml            # 项目配置
-├── README.md             # 本文档
-└── ch_28 (1).pcap        # 示例数据文件
+└── README.md             # 本文档
 ```
+
+## 依赖库
+
+- `pcap-parser` - PCAP 文件解析
+- `rust_xlsxwriter` - Excel 文件生成
+- `indicatif` - 进度条显示
+- `anyhow` - 错误处理

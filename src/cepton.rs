@@ -1,11 +1,13 @@
 /// Cepton STDV packet and point data structures
 
-/// Represents a 3D point with XYZ coordinates in meters
+/// Represents a 3D point with XYZ coordinates in meters and additional metadata
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: f64,  // meters
-    pub y: f64,  // meters
-    pub z: f64,  // meters
+    pub x: f64,           // meters
+    pub y: f64,           // meters
+    pub z: f64,           // meters
+    pub reflectivity: u8, // 0-255
+    pub flags: u8,        // status flags
 }
 
 /// STDV packet header (24 bytes)
@@ -101,7 +103,7 @@ impl RawPoint {
         })
     }
 
-    /// Convert raw point to meters
+    /// Convert raw point to meters with all metadata
     /// Cepton uses 0.5cm (0.005m) resolution for coordinates
     pub fn to_meters(&self) -> Point {
         const SCALE: f64 = 0.005; // 0.5cm = 0.005m
@@ -110,6 +112,8 @@ impl RawPoint {
             x: self.x as f64 * SCALE,
             y: self.y as f64 * SCALE,
             z: self.z as f64 * SCALE,
+            reflectivity: self.reflectivity,
+            flags: self.flags,
         }
     }
 
