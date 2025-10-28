@@ -1,5 +1,12 @@
 /// Cepton STDV packet and point data structures
 
+/// Parse mode for different point data formats
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ParseMode {
+    Normal,  // 10 bytes per point, 144 points per packet
+    Debug,   // 17 bytes per point, 72 points per packet
+}
+
 /// Represents a 3D point with XYZ coordinates in meters and additional metadata
 #[derive(Debug, Clone)]
 pub struct Point {
@@ -8,6 +15,11 @@ pub struct Point {
     pub z: f64,           // meters
     pub reflectivity: u8, // 0-255
     pub flags: u8,        // status flags
+
+    // Debug mode extra fields (optional)
+    pub distance: Option<u32>,    // Debug: distance in mm or raw units
+    pub intensity: Option<u16>,   // Debug: intensity value
+    pub power_level: Option<u8>,  // Debug: power level
 }
 
 /// STDV packet header (24 bytes)
@@ -64,22 +76,35 @@ impl StdvHeader {
     }
 }
 
-/// Raw point data structure (10 bytes minimum)
+/// Raw point data structure (10 bytes minimum, 17 bytes in debug mode)
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct RawPoint {
     pub x: i16,           // 0.5cm resolution, signed
-    pub y: i16,           // 0.5cm resolution, signed
+    pub y: i16,           // 0.5cm resolution, signed (note: spec says uint16 but we treat as signed)
     pub z: i16,           // 0.5cm resolution, signed
     pub reflectivity: u8, // 0-255
     pub timestamp: u8,    // microseconds (0-255)
     pub laser_id: u8,     // channel/laser ID (0-63)
-    pub flags: u8,
+    pub flags: u8,        // status flags
+
+    // Debug mode extra fields (None in Normal mode)
+    pub distance: Option<u32>,    // Debug: distance
+    pub intensity: Option<u16>,   // Debug: intensity
+    pub power_level: Option<u8>,  // Debug: power level
 }
 
 impl RawPoint {
-    /// Parse a single point from 10 bytes
-    pub fn parse(data: &[u8]) -> Option<Self> {
+    /// Parse a single point with mode selection
+    pub fn parse_with_mode(data: &[u8], mode: ParseMode) -> Option<Self> {
+        match mode {
+            ParseMode::Normal => Self::parse_normal(data),
+            ParseMode::Debug => Self::parse_debug(data),
+        }
+    }
+
+    /// Parse a single point from 10 bytes (Normal mode)
+    fn parse_normal(data: &[u8]) -> Option<Self> {
         if data.len() < 10 {
             return None;
         }
@@ -100,7 +125,61 @@ impl RawPoint {
             timestamp,
             laser_id,
             flags,
+            distance: None,
+            intensity: None,
+            power_level: None,
         })
+    }
+
+    /// Parse a single point from 17 bytes (Debug mode)
+    /// Full structure:
+    ///   0-1:   int16_t x
+    ///   2-3:   uint16_t y (treated as signed)
+    ///   4-5:   int16_t z
+    ///   6:     uint8_t reflectivity
+    ///   7:     uint8_t timestamp_offset_usec
+    ///   8:     uint8_t laser_id
+    ///   9:     uint8_t flags
+    ///   10-13: uint32_t distance
+    ///   14-15: uint16_t intensity
+    ///   16:    uint8_t power_level
+    fn parse_debug(data: &[u8]) -> Option<Self> {
+        if data.len() < 17 {
+            return None;
+        }
+
+        // First 10 bytes: standard fields
+        let x = i16::from_le_bytes([data[0], data[1]]);
+        let y = i16::from_le_bytes([data[2], data[3]]);
+        let z = i16::from_le_bytes([data[4], data[5]]);
+        let reflectivity = data[6];
+        let timestamp = data[7];
+        let laser_id = data[8];
+        let flags = data[9];
+
+        // Bytes 10-16: debug fields (7 bytes)
+        let distance = u32::from_le_bytes([data[10], data[11], data[12], data[13]]);
+        let intensity = u16::from_le_bytes([data[14], data[15]]);
+        let power_level = data[16];
+
+        Some(RawPoint {
+            x,
+            y,
+            z,
+            reflectivity,
+            timestamp,
+            laser_id,
+            flags,
+            distance: Some(distance),
+            intensity: Some(intensity),
+            power_level: Some(power_level),
+        })
+    }
+
+    /// Legacy parse function (Normal mode, for backward compatibility)
+    #[allow(dead_code)]
+    pub fn parse(data: &[u8]) -> Option<Self> {
+        Self::parse_normal(data)
     }
 
     /// Convert raw point to meters with all metadata
@@ -114,6 +193,9 @@ impl RawPoint {
             z: self.z as f64 * SCALE,
             reflectivity: self.reflectivity,
             flags: self.flags,
+            distance: self.distance,
+            intensity: self.intensity,
+            power_level: self.power_level,
         }
     }
 

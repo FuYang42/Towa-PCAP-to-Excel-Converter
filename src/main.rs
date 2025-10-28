@@ -14,8 +14,30 @@ fn main() -> Result<()> {
     println!("  Extract XYZ coordinates by channel");
     println!("=======================================================\n");
 
+    // Select parse mode
+    println!("[Step 0/5] Select data format:");
+    println!("  1. Normal mode  (10 bytes/point, 144 points/packet)");
+    println!("  2. Debug mode   (17 bytes/point, 72 points/packet)");
+    print!("\nYour selection [1]: ");
+    io::stdout().flush()?;
+
+    let mut mode_input = String::new();
+    io::stdin().read_line(&mut mode_input)?;
+    let mode_input = mode_input.trim();
+
+    let parse_mode = match mode_input {
+        "2" => {
+            println!("Using Debug mode (17 bytes/point)");
+            cepton::ParseMode::Debug
+        }
+        _ => {
+            println!("Using Normal mode (10 bytes/point)");
+            cepton::ParseMode::Normal
+        }
+    };
+
     // Get input file path (simple stdin read)
-    print!("Enter PCAP file path [ch_28 (1).pcap]: ");
+    print!("\nEnter PCAP file path [ch_28 (1).pcap]: ");
     io::stdout().flush()?;
 
     let mut input = String::new();
@@ -34,11 +56,11 @@ fn main() -> Result<()> {
         anyhow::bail!("File not found: {}", pcap_file);
     }
 
-    println!("\n[Step 1/4] Scanning PCAP file for channels...");
+    println!("\n[Step 1/5] Scanning PCAP file for channels...");
     println!("(This may take a moment for large files...)");
 
     // Scan file to get channel statistics
-    let channel_stats = pcap_reader::scan_channels(&pcap_file)?;
+    let channel_stats = pcap_reader::scan_channels(&pcap_file, parse_mode)?;
 
     if channel_stats.is_empty() {
         anyhow::bail!("No valid STDV packets found in the file");
@@ -58,7 +80,7 @@ fn main() -> Result<()> {
     println!("\n  Total:      {:8} points\n", total_points);
 
     // Let user select channels
-    println!("[Step 2/4] Select channels to extract:");
+    println!("[Step 2/5] Select channels to extract:");
     println!("  Options:");
     println!("    - Enter channel numbers separated by commas (e.g., 0,5,10)");
     println!("    - Enter 'all' to extract all channels");
@@ -107,7 +129,7 @@ fn main() -> Result<()> {
     println!("Total points to extract: {}", points_to_extract);
 
     // Extract points from selected channels
-    println!("\n[Step 3/4] Extracting XYZ coordinates...");
+    println!("\n[Step 3/5] Extracting XYZ coordinates...");
 
     let mut channel_points: HashMap<u8, Vec<cepton::Point>> = HashMap::new();
     for &ch in &selected_channels {
@@ -121,12 +143,12 @@ fn main() -> Result<()> {
             .progress_chars("=>-")
     );
 
-    pcap_reader::extract_points(&pcap_file, &selected_channels, &mut channel_points, Some(&pb))?;
+    pcap_reader::extract_points(&pcap_file, &selected_channels, &mut channel_points, parse_mode, Some(&pb))?;
 
     pb.finish_with_message("Extraction complete!");
 
     // Export to Excel
-    println!("\n[Step 4/4] Exporting to Excel...");
+    println!("\n[Step 4/5] Exporting to Excel...");
 
     let output_file = pcap_file.replace(".pcap", "_xyz.xlsx");
     excel_exporter::export_to_excel(&channel_points, &output_file)?;

@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::Read;
 
 /// Scan PCAP file to count points per channel
-pub fn scan_channels(pcap_path: &str) -> Result<HashMap<u8, usize>> {
+pub fn scan_channels(pcap_path: &str, mode: crate::cepton::ParseMode) -> Result<HashMap<u8, usize>> {
     let mut file = File::open(pcap_path)
         .with_context(|| format!("Failed to open file: {}", pcap_path))?;
 
@@ -57,18 +57,21 @@ pub fn scan_channels(pcap_path: &str) -> Result<HashMap<u8, usize>> {
         // Try to parse as STDV packet
         if let Some(header) = StdvHeader::parse(payload) {
             let point_data_start = 24; // After STDV header
-            let point_size = header.point_size as usize;
-
-            // Validate point_size (should be at least 10 bytes)
-            if point_size < 10 {
-                continue;
-            }
+            let point_size = match mode {
+                crate::cepton::ParseMode::Normal => 10,
+                crate::cepton::ParseMode::Debug => 17,
+            };
 
             // Parse all points in this packet
             for i in 0..header.point_count {
                 let offset = point_data_start + (i as usize * point_size);
-                if offset + 10 <= payload.len() {
-                    if let Some(raw_point) = RawPoint::parse(&payload[offset..]) {
+                let required_size = match mode {
+                    crate::cepton::ParseMode::Normal => 10,
+                    crate::cepton::ParseMode::Debug => 17,
+                };
+
+                if offset + required_size <= payload.len() {
+                    if let Some(raw_point) = RawPoint::parse_with_mode(&payload[offset..], mode) {
                         let channel = raw_point.channel();
                         *channel_counts.entry(channel).or_insert(0) += 1;
                     }
@@ -85,6 +88,7 @@ pub fn extract_points(
     pcap_path: &str,
     selected_channels: &[u8],
     channel_points: &mut HashMap<u8, Vec<Point>>,
+    mode: crate::cepton::ParseMode,
     progress_bar: Option<&ProgressBar>,
 ) -> Result<()> {
     let mut file = File::open(pcap_path)
@@ -121,18 +125,21 @@ pub fn extract_points(
         // Try to parse as STDV packet
         if let Some(header) = StdvHeader::parse(payload) {
             let point_data_start = 24; // After STDV header
-            let point_size = header.point_size as usize;
-
-            // Validate point_size (should be at least 10 bytes)
-            if point_size < 10 {
-                continue;
-            }
+            let point_size = match mode {
+                crate::cepton::ParseMode::Normal => 10,
+                crate::cepton::ParseMode::Debug => 17,
+            };
 
             // Parse all points in this packet
             for i in 0..header.point_count {
                 let offset = point_data_start + (i as usize * point_size);
-                if offset + 10 <= payload.len() {
-                    if let Some(raw_point) = RawPoint::parse(&payload[offset..]) {
+                let required_size = match mode {
+                    crate::cepton::ParseMode::Normal => 10,
+                    crate::cepton::ParseMode::Debug => 17,
+                };
+
+                if offset + required_size <= payload.len() {
+                    if let Some(raw_point) = RawPoint::parse_with_mode(&payload[offset..], mode) {
                         let channel = raw_point.channel();
 
                         // Only extract if this channel is selected

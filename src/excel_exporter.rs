@@ -34,12 +34,29 @@ pub fn export_to_excel(channel_points: &HashMap<u8, Vec<Point>>, output_path: &s
         let worksheet = workbook.add_worksheet();
         worksheet.set_name(&sheet_name)?;
 
+        // Check if we have debug data
+        let has_debug_data = points.first().and_then(|p| p.distance).is_some();
+
         // Write headers
-        worksheet.write_with_format(0, 0, "X (m)", &header_format)?;
-        worksheet.write_with_format(0, 1, "Y (m)", &header_format)?;
-        worksheet.write_with_format(0, 2, "Z (m)", &header_format)?;
-        worksheet.write_with_format(0, 3, "Reflectivity", &header_format)?;
-        worksheet.write_with_format(0, 4, "Flags", &header_format)?;
+        let mut col = 0;
+        worksheet.write_with_format(0, col, "X (m)", &header_format)?;
+        col += 1;
+        worksheet.write_with_format(0, col, "Y (m)", &header_format)?;
+        col += 1;
+        worksheet.write_with_format(0, col, "Z (m)", &header_format)?;
+        col += 1;
+        worksheet.write_with_format(0, col, "Reflectivity", &header_format)?;
+        col += 1;
+        worksheet.write_with_format(0, col, "Flags", &header_format)?;
+        col += 1;
+
+        if has_debug_data {
+            worksheet.write_with_format(0, col, "Distance", &header_format)?;
+            col += 1;
+            worksheet.write_with_format(0, col, "Intensity", &header_format)?;
+            col += 1;
+            worksheet.write_with_format(0, col, "Power Level", &header_format)?;
+        }
 
         // Set column widths
         worksheet.set_column_width(0, 12)?;
@@ -47,15 +64,42 @@ pub fn export_to_excel(channel_points: &HashMap<u8, Vec<Point>>, output_path: &s
         worksheet.set_column_width(2, 12)?;
         worksheet.set_column_width(3, 14)?;
         worksheet.set_column_width(4, 10)?;
+        if has_debug_data {
+            worksheet.set_column_width(5, 12)?;
+            worksheet.set_column_width(6, 12)?;
+            worksheet.set_column_width(7, 12)?;
+        }
 
         // Write data
         for (i, point) in points.iter().enumerate() {
             let row = (i + 1) as u32;
-            worksheet.write_with_format(row, 0, point.x, &number_format)?;
-            worksheet.write_with_format(row, 1, point.y, &number_format)?;
-            worksheet.write_with_format(row, 2, point.z, &number_format)?;
-            worksheet.write_number(row, 3, point.reflectivity as f64)?;
-            worksheet.write_number(row, 4, point.flags as f64)?;
+            let mut col = 0;
+
+            worksheet.write_with_format(row, col, point.x, &number_format)?;
+            col += 1;
+            worksheet.write_with_format(row, col, point.y, &number_format)?;
+            col += 1;
+            worksheet.write_with_format(row, col, point.z, &number_format)?;
+            col += 1;
+            worksheet.write_number(row, col, point.reflectivity as f64)?;
+            col += 1;
+            worksheet.write_number(row, col, point.flags as f64)?;
+            col += 1;
+
+            // Write debug fields if present
+            if has_debug_data {
+                if let Some(distance) = point.distance {
+                    worksheet.write_number(row, col, distance as f64)?;
+                }
+                col += 1;
+                if let Some(intensity) = point.intensity {
+                    worksheet.write_number(row, col, intensity as f64)?;
+                }
+                col += 1;
+                if let Some(power_level) = point.power_level {
+                    worksheet.write_number(row, col, power_level as f64)?;
+                }
+            }
         }
 
         // Freeze first row (headers)
@@ -88,6 +132,9 @@ mod tests {
                     z: -88.94,
                     reflectivity: 128,
                     flags: 0,
+                    distance: None,
+                    intensity: None,
+                    power_level: None,
                 },
                 Point {
                     x: 82.32,
@@ -95,6 +142,9 @@ mod tests {
                     z: 4.05,
                     reflectivity: 255,
                     flags: 1,
+                    distance: None,
+                    intensity: None,
+                    power_level: None,
                 },
             ],
         );
@@ -107,6 +157,9 @@ mod tests {
                 z: 0.32,
                 reflectivity: 64,
                 flags: 0,
+                distance: None,
+                intensity: None,
+                power_level: None,
             }],
         );
 
