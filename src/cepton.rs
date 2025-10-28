@@ -68,9 +68,9 @@ impl StdvHeader {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct RawPoint {
-    pub x: i16,           // 0.5cm resolution
-    pub y: u16,           // 0.5cm resolution
-    pub z: i16,           // 0.5cm resolution
+    pub x: i16,           // 0.5cm resolution, signed
+    pub y: i16,           // 0.5cm resolution, signed
+    pub z: i16,           // 0.5cm resolution, signed
     pub reflectivity: u8, // 0-255
     pub timestamp: u8,    // microseconds (0-255)
     pub laser_id: u8,     // channel/laser ID (0-63)
@@ -85,7 +85,7 @@ impl RawPoint {
         }
 
         let x = i16::from_le_bytes([data[0], data[1]]);
-        let y = u16::from_le_bytes([data[2], data[3]]);
+        let y = i16::from_le_bytes([data[2], data[3]]);
         let z = i16::from_le_bytes([data[4], data[5]]);
         let reflectivity = data[6];
         let timestamp = data[7];
@@ -152,5 +152,22 @@ mod tests {
         let meters = point.to_meters();
         assert!((meters.x - 12.8).abs() < 0.01);
         assert!((meters.y - 0.72).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_raw_point_parse_new_data() {
+        // Test data from user: 35 1a c7 45 49 bd
+        // Expected: X=6709, Y=17863, Z=-17079
+        let data = [0x35, 0x1a, 0xc7, 0x45, 0x49, 0xbd, 0x00, 0x00, 0x00, 0x00];
+        let point = RawPoint::parse(&data).unwrap();
+
+        assert_eq!(point.x, 6709);
+        assert_eq!(point.y, 17863);
+        assert_eq!(point.z, -17079);
+
+        let meters = point.to_meters();
+        assert!((meters.x - 33.545).abs() < 0.01);
+        assert!((meters.y - 89.315).abs() < 0.01);
+        assert!((meters.z - (-85.395)).abs() < 0.01);
     }
 }
